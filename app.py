@@ -67,7 +67,7 @@ def upload_image():
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
         image = Image.open(file)
         prediction = predict(image)
-        flask.flash('Image successfully uploaded and displayed below')
+        # flask.flash('Image successfully uploaded and displayed below with predicted class')
         return flask.render_template('upload.html', filename=filename, prediction=prediction)
     else:
         flask.flash('Allowed image types are -> png, jpg, jpeg')
@@ -96,7 +96,7 @@ def predict(image):
 
     # indicate that the request was a success
     data["success"] = True
-    # return the data dictionary as a JSON response
+    # return the data dictionary as a JSON response. The predictions only are needed now.
     return data["predictions"]
 
 

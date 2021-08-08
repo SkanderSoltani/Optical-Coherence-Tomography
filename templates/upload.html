@@ -1,41 +1,122 @@
 <!DOCTYPE html>
 <html lang="en">
     <title>Python Flask ML model prediction from image</title>
-    <h2>Select a file for prediction</h2>
-    <p>
-        {% with messages = get_flashed_messages() %}
-          {% if messages %}
-            <ul>
-            {% for message in messages %}
-              <li>{{ message }}</li>
-            {% endfor %}
-            </ul>
-          {% endif %}
-        {% endwith %}
-    </p>
-    {% if filename %}
-        <div>
-            <img src="{{ url_for('display_image', filename=filename) }}">
-        </div>
-    {% endif %}
-    {% if prediction %}
-        <div>
-            <h2>Prediction:</h2>
-            <ul>
-            {% for pred in prediction %}
-               <li> Label: {{pred.label}} , Probability: {{pred.probability}}</li>
-            {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
-    <form method="post" action="/" enctype="multipart/form-data">
-        <dl>
-            <p>
-                <input type="file" name="file" autocomplete="off" required>
-            </p>
-        </dl>
-        <p>
-            <input type="submit" value="Submit">
-        </p>
-    </form>
+    <body>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+            <title>Home - CREW</title>
+            <meta name="description" content="OCT image classification">
+            <link rel="stylesheet" href="{{ url_for('static', filename='assets/bootstrap/css/bootstrap.min.css') }}">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400v,700,400italic,700italic">
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Cabin:700">
+            <link rel="stylesheet" href="{{ url_for('static', filename='assets/fonts/font-awesome.min.css') }}">
+
+        </head>
+
+    <body id="page-top" data-bs-spy="scroll" data-bs-target="#mainNav" data-bs-offset="77">
+        <nav class="navbar navbar-light navbar-expand-md fixed-top" id="mainNav">
+            <div class="container"><a class="navbar-brand" href="#">CREW</a><button data-bs-toggle="collapse" class="navbar-toggler navbar-toggler-right" data-bs-target="#navbarResponsive" type="button" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" value="Menu"><i class="fa fa-bars"></i></button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item nav-link"><a class="nav-link active" href="#about">About</a></li>
+                        <li class="nav-item nav-link"><a class="nav-link" href="#start_learning">Start learning</a></li>
+                        <li class="nav-item nav-link"><a class="nav-link" href="#contact">Contact us</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <header class="masthead" style="background-image:url({{ url_for('static', filename='assets/img/eye.jpg') }});">
+            <div class="intro-body">
+                <div class="container">
+                    <div class="row">
+                        <div class="col-lg-8 mx-auto">
+                            <h1 class="brand-heading">OCT image classifier</h1>
+                            <p class="intro-text">Learn to diagnose pathologies from retinal OCT images.</p><a class="btn btn-link btn-circle" role="button" href="#about"><i class="fa fa-angle-double-down animated"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <section class="text-center content-section" id="about">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <h2>What we believe in</h2>
+                        <p>AI can assist ophthalmology students in learning to diagnose retinal diseases.</p>
+                        <p>AI can find and pinpoint the areas in the image that imply a pathology to assist learning.</p>
+                        <p>AI has the power of making highly effective classifications with performance comparable to clinical doctors.</p>
+                        <h2>How does it work</h2>
+                        <p>PAWS, Resnet50, Semi-supervised learning...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="text-center download-section content-section" id="start_learning" style="background-image:url({{ url_for('static', filename='assets/img/num2.jpg') }});">
+            <div class="container">
+                <div class="col-lg-8 mx-auto">
+                    <h1>upload image</h1>
+                    <p>Try to diagnose this image. Does your image contain DRUSEN, CNV or CME or can the patient go home healthy and happy?</p>
+                </div>
+                <p>
+                    {% with messages = get_flashed_messages() %}
+                      {% if messages %}
+                        <ul>
+                        {% for message in messages %}
+                          <p>{{ message }}</p>
+                        {% endfor %}
+                        </ul>
+                      {% endif %}
+                    {% endwith %}
+                </p>
+                {% if filename %}
+                    <div>
+                        <img src="{{ url_for('display_image', filename=filename) }}">
+                    </div>
+                {% endif %}
+
+            </div>
+            <form align="center" method="post" action="/#start_learning" enctype="multipart/form-data" target="_self">
+                <dl>
+                    <p>
+                        <input id="upload_btn" type="file" name="file" autocomplete="off" required/>
+                    </p>
+                </dl>
+                <p>
+                    <input class="btn btn-primary btn-lg btn-default" type="submit" value="Submit">
+                </p>
+                <p>Our diagnosis (image added later..):</p>
+                {% if prediction %}
+                    <div class="container">
+                        <ul>
+                        {% for pred in prediction %}
+                           <p> Label: {{pred.label}} , Probability: {{pred.probability}}</p>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </form>
+        </section>
+        <section class="text-center content-section" id="contact">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-8 mx-auto">
+                        <h2>Contact us</h2>
+                        <p>Find the project and more information on github!</p>
+                        <ul class="list-inline banner-social-buttons">
+                            <li class="list-inline-item">&nbsp;<button onclick="location.href='https://github.com/SkanderSoltani/optical_coherence_tomography'" class="btn btn-primary btn-lg btn-default" type="button"><i class="fa fa-github fa-fw"></i><span class="network-name">&nbsp;github</span></button></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="map-clean"></div>
+        <footer>
+            <div class="container text-center">
+                <p>Copyright ©&nbsp;CREW 2021</p>
+            </div>
+        </footer>
+        <script src="{{ url_for('static', filename='assets/bootstrap/js/bootstrap.min.js') }}"></script>
+        <script src="{{ url_for('static', filename='assets/js/grayscale.js') }}"></script>
+    </body>
 </html>
