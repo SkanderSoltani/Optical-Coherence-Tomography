@@ -1,6 +1,6 @@
-=========================
-Potholes Detection System
-=========================
+============================
+Optical Coherence Tomography
+============================
 
 
 .. image:: https://img.shields.io/travis/SkanderSoltani/potholes_detection_system.svg
