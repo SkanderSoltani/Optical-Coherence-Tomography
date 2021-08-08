@@ -20,7 +20,6 @@ A deep learning system to detect roads cracks and potholes
 
 
 * Free software: MIT license
-* Documentation: https://potholes-detection-system.readthedocs.io.
 
 
 Features
