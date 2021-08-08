@@ -1,6 +1,6 @@
-=========================
-Potholes Detection System
-=========================
+============================
+Optical Coherence Tomography
+============================
 
 
 .. image:: https://img.shields.io/travis/SkanderSoltani/potholes_detection_system.svg
@@ -20,7 +20,6 @@ A deep learning system to detect roads cracks and potholes
 
 
 * Free software: MIT license
-* Documentation: https://potholes-detection-system.readthedocs.io.
 
 
 Features
