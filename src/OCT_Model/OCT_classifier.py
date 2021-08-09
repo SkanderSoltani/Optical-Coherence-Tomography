@@ -40,7 +40,7 @@ def get_params():
         # ---
     # Returns:
         # params -> dictionary with parameters
-    with open('config.yaml') as file:
+    with open('config.yml') as file:
         params = yaml.load(file, Loader=yaml.FullLoader)
     file.close()
     return params
@@ -116,7 +116,7 @@ class OCT_classifier(Model):
         
         # Model structure
         self.pretrained_model = tf.keras.applications.ResNet50V2(include_top=False,
-                                                                 weights="imagenet"
+                                                                 weights="imagenet",
                                                                  input_shape=(224,224,3))
 
             
@@ -135,7 +135,7 @@ class OCT_classifier(Model):
         # returns:
         #   lastTensor -> tensor representing last layer in the model    
         
-        x = pretrained_model(inputs)
+        x = self.pretrained_model(inputs)
         x = self.last_avg_pool(x)
         x = self.dense1024(x)
         x = self.dense512(x)
@@ -149,21 +149,21 @@ class OCT_classifier(Model):
                      loss=self._model_loss, 
                      metrics=self._model_metrics)
         
-    def Fit(self,training_data,validation_data=None,call_backs_dir = None):
+    def Fit(self,training_gen,validation_gen=None,call_backs_dir = None):
         # Method to fit the model to current data
         # Args:
-        #    training_data   -> tuple(X,y) where X and y are of type numpy.array(). X represents text mapping, y is the label
-        #    validation_data -> tuple(X,y) where X and y are of type numpy.array(). X represents text mapping, y is the label, defaults to None
+        #    training_data   -> ImageDataGenerator Object Flow with training data
+        #    validation_data -> ImageDataGenerator Object Flow with validation data
         #    call_back_dir   -> optional, of type str describing name of log directory for callbacks, default is None
         # Returns:
         #    ---
         if call_backs_dir:
             # tensorboard -log files 
-            log_dir = os.path.join(get_data(self._path_to_logs),call_backs_dir,datetime.now().strftime("%Y%m%d-%H%M%S"))
+            log_dir = os.path.join(self._path_to_logs,call_backs_dir,datetime.now().strftime("%Y%m%d-%H%M%S"))
             tensorboard_callback = keras.callbacks.TensorBoard(log_dir=log_dir)
             
             # checkpoints to save model
-            checkpoint_dir = os.path.join(get_data(self._path_to_checkpoints),call_backs_dir,'')
+            checkpoint_dir = os.path.join(self._path_to_checkpoints,call_backs_dir,'')
             
             checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath =checkpoint_dir,
                                                                      save_freq = 'epoch',
@@ -176,15 +176,14 @@ class OCT_classifier(Model):
             call_backs = None
             
             
-        X_train,y_train = training_data
-        self.fit(x                 = X_train,
-             y                     = y_train,
-             batch_size            = self._batch_size, 
+        
+        self.fit(x                 = training_gen,
+            #  batch_size            = self._batch_size, 
              epochs                = self._epochs, 
              verbose               = self._verbose,
              callbacks             = call_backs, 
              validation_split      = self._validation_split, 
-             validation_data       = validation_data,
+             validation_data       = validation_gen,
              shuffle               = self._shuffle,
              class_weight          = self._class_weight, 
              sample_weight         = self._sample_weight, 
@@ -196,23 +195,23 @@ class OCT_classifier(Model):
              max_queue_size        = self._max_queue_size, 
              workers               = self._workers)
         
-    def Predict(self,X,thresh = None):
+    def Predict(self,test_gen,thresh = None):
         # Method to predict sentiment around text
         # Args:
-            # X      -> of type numpy.array() representing text mapping used to predict sentiment
-            # thresh -> of type float. threshold used around predicted probabilities
+            # test_gen -> ImageDataGenerator Flow object representing test flow
+            # thresh   -> of type float. threshold used around predicted probabilities
         # returns:
             # y_proba -> numpy.array() representing vector of probabilities for each class
             # y_pred  -> numpy.array() representing vector of predicted classes
-        y_proba = self.predict(X,
-                    batch_size          = self._batch_size_p ,
+        y_proba = self.predict(test_gen,
+                    # batch_size          = self._batch_size_p ,
                     verbose             = self._verbose_p,
                     steps               = self._steps_p,
                     max_queue_size      = self._max_queue_size_p,
                     workers             = self._workers_p,
                     use_multiprocessing = self._use_multiprocessing_p)
         
-        y_pred = (y_proba>thresh).astype(int) if thresh else (y_proba>0.5).astype(int)
+        y_pred = y_proba.argmax(axis=1)
         return y_proba,y_pred
     
     
@@ -230,7 +229,7 @@ class OCT_classifier(Model):
         # Method to load weights from checkpoints - often used during traing in conjuction with tensorboard to monitor
         # training performance
         try:
-            path = get_data(self._path_to_checkpoints) + checkpoint_dir + '\\'
+            path = os.path.join(self._path_to_checkpoints,checkpoint_dir,'/')
             self.load_weights(path).expect_partial()
             print("Weights Loaded") # This should be a sent to a log file down the road
         except:
@@ -243,7 +242,7 @@ class OCT_classifier(Model):
         # Returns:
             # --- prints / logs a statement of success or failure
         
-        path_to_model = get_data(self._path_to_model) + version_name
+        path_to_model = os.path.join(self._path_to_model,version_name)
         try:
             self.save(path_to_model)
             print("model saved successfully!")
@@ -256,7 +255,7 @@ class OCT_classifier(Model):
             # version_dir -> of type str() representing directory name aka: V1, V2, V3...etc
         # Returns:
             # --- prints / logs a statement of success or failure
-        path_to_model = os.path.join(get_data(self._path_to_model),version_name)
+        path_to_model = os.path.join(self._path_to_model,version_name)
         try:
             reconstructed_model = keras.models.load_model(path_to_model)
             print("model loaded successfully!")
