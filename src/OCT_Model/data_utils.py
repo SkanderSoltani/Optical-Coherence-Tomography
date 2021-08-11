@@ -45,7 +45,7 @@ class PreProcessing:
 		return datagen
 
 
-	def getGenerator(self,path,augmentation_flag=True):
+	def getGenerator(self,path,augmentation_flag=True,test_gen=False):
 		if augmentation_flag==True:
 			data_generator = self.data_generator_with_aug()
 			gen = data_generator.flow_from_directory(
@@ -62,6 +62,15 @@ class PreProcessing:
 				batch_size           = self._config['pre_processing']['batch_size'],
 				target_size          = (self._config['pre_processing']['target_size'],self._config['pre_processing']['target_size']),
 				shuffle              = self._config['pre_processing']['shuffle'])
+		if test_gen:
+			data_generator = self.data_generator_no_aug()
+			gen = data_generator.flow_from_directory(
+				directory            = path,
+				color_mode           = self._config['pre_processing']['color_mode'],
+				batch_size           = self._config['pre_processing']['batch_size'],
+				target_size          = (self._config['pre_processing']['target_size'],self._config['pre_processing']['target_size']),
+				shuffle              = False)
+
 		return gen 
 
 	def getGenerators(self):
@@ -73,7 +82,7 @@ class PreProcessing:
 		# getting train generator:
 		generator_train  = self.getGenerator(path=train_path,augmentation_flag=True)
 		generator_val    = self.getGenerator(path=val_path,augmentation_flag=False)
-		generator_test   = self.getGenerator(path=test_path,augmentation_flag=False)
+		generator_test   = self.getGenerator(path=test_path,augmentation_flag=False,test_gen=True)
 		generator_warmup = self.getGenerator(path=warmup_path,augmentation_flag=True)
 
 		result = {"generator_train":generator_train,"generator_val":generator_val,"generator_test":generator_test,"generator_warmup":generator_warmup}
