@@ -104,7 +104,13 @@ class PreProcessing:
 		:param warm_split: The ratio of data to be used in the warm_start_data_split
 		:return: None. Just copies the files.
 		"""
-		source      = self._config['data']['source']
+		# If using warm_start we use data from new_data_split as source
+		if warm_start:
+			source  = self._config['data']['source_warmup']
+
+		# Otherwise we use the original dataset
+		else:
+			source  = self._config['data']['source']
 		destination = self._config['data']['destination']
 		train_split = self._config['pre_processing']['train_val_split']
 		warm_split  = self._config['pre_processing']['warmup_split']
