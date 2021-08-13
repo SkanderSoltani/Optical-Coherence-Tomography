@@ -88,9 +88,10 @@
                 <p>Our diagnosis (image added later..):</p>
                 {% if prediction %}
                     <div class="container">
+                        <p>Predicted class: {{prediction['max_label'][0]}}</p>
                         <ul>
-                        {% for pred in prediction %}
-                           <p> Label: {{pred.label}} , Probability: {{pred.probability}}</p>
+                        {% for pred in prediction['predictions'] %}
+                           <p> {{pred.label}} , Probability: {{pred.probability}}</p>
                         {% endfor %}
                         </ul>
                     </div>
