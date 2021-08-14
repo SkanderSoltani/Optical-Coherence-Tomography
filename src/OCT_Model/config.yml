@@ -13,8 +13,9 @@ data:
 
 pre_processing:
   #Split
-  train_val_split : 0.98
+  train_val_split : 0.95
   warmup_split : 0.05
+  
   # Augmentation
   featurewise_center : False
   samplewise_center : False
@@ -38,7 +39,7 @@ pre_processing:
   # Flow
  
   color_mode: "rgb"
-  batch_size: 16
+  batch_size: 32
   target_size: 224
   shuffle: True
   seed: 1
@@ -56,16 +57,16 @@ optimizer:
   amsgrad : False
 
 fit:
-  batch_size : 16
-  epochs : 5
+  batch_size : 32
+  epochs : 1
   verbose : 'auto'
   validation_split : 0.0  
   shuffle : False 
   class_weight :
   sample_weight : 
   initial_epoch : 0
-  steps_per_epoch : 2 # needs to be an integer// calculated as training Sample size // Batch Size
-  validation_steps :  2 # needs to be an integer// calculated as Validation Sample size // Batch Size
+  steps_per_epoch : 55 # needs to be an integer// calculated as training Sample size // Batch Size
+  validation_steps :  55 # needs to be an integer// calculated as Validation Sample size // Batch Size
   validation_batch_size : 
   validation_freq : 1
   max_queue_size : 10
