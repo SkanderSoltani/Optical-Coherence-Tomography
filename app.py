@@ -1,14 +1,14 @@
 # import the necessary packages
-from keras.applications.resnet50 import ResNet50
 from keras.preprocessing.image import img_to_array
-from keras.applications import imagenet_utils
-import numpy as np
+from werkzeug.utils import secure_filename
 from PIL import Image
+import numpy as np
+import operator
 import flask
 import os
-import io
-from werkzeug.utils import secure_filename
+import keras
 
+# path to the folder where the user's uploaded images are saved
 UPLOAD_FOLDER = 'static/uploads'
 
 # initialize our Flask application and the Keras model
@@ -26,11 +26,9 @@ def allowed_file(filename):
 
 
 def load_model():
-    # load the pre-trained Keras model (here we are using a model
-    # pre-trained on ImageNet and provided by Keras, but you can
-    # substitute in your own networks just as easily)
+    # load the model
     global model
-    model = ResNet50(weights="imagenet")
+    model = keras.models.load_model('src/OCT_Model/V1/')
 
 
 def prepare_image(image, target):
@@ -38,14 +36,14 @@ def prepare_image(image, target):
     if image.mode != "RGB":
         image = image.convert("RGB")
 
-    # resize the input image and preprocess it
-    image = image.resize(target)
-    image = img_to_array(image)
-    image = np.expand_dims(image, axis=0)
-    image = imagenet_utils.preprocess_input(image)
+    # resize the input image and process it
+    img = image.resize(target)
+    x = img_to_array(img)
+    x = np.expand_dims(x, axis=0)
+    x = x/255
 
     # return the processed image
-    return image
+    return x
 
 
 @app.route("/")
@@ -77,7 +75,9 @@ def upload_image():
 def predict(image):
     # initialize the data dictionary that will be returned from the
     # view
-    data = {"success": False}
+    data = {"predictions": []}
+    # define the dictionary of classes
+    classes = {0: 'CNV', 1: 'DME', 2: 'DRUSEN', 3: 'NORMAL'}
 
     # preprocess the image and prepare it for classification
     image = prepare_image(image, target=(224, 224))
@@ -85,19 +85,19 @@ def predict(image):
     # classify the input image and then initialize the list
     # of predictions to return to the client
     preds = model.predict(image)
-    results = imagenet_utils.decode_predictions(preds)
-    data["predictions"] = []
 
-    # loop over the results and add them to the list of
-    # returned predictions
-    for (imagenetID, label, prob) in results[0]:
-        r = {"label": label, "probability": float(prob)}
+    # add all the predictions to the dictionary 'data'
+    for idx, prob in enumerate(preds[0]):
+        r = {"label": classes[idx], "probability": round(prob, 3)}
         data["predictions"].append(r)
 
-    # indicate that the request was a success
-    data["success"] = True
-    # return the data dictionary as a JSON response. The predictions only are needed now.
-    return data["predictions"]
+    # get the most likely prediction's label and add to dictionary 'data'
+    index, value = max(enumerate(preds[0]), key=operator.itemgetter(1))
+    data["max_label"] =[]
+    data["max_label"].append(classes[index])
+
+    # return a dictionary containing all the predictions and the most likely label
+    return data
 
 
 @app.route('/display/<filename>')
@@ -112,4 +112,4 @@ if __name__ == "__main__":
     print(("* Loading Keras model and Flask starting server..."
            "please wait until server has fully started"))
     load_model()
-    app.run()
+    app.run(host='127.0.0.1', port=5000)

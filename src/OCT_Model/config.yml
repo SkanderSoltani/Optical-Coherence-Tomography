@@ -5,6 +5,7 @@ data:
   warmup_path : "../../data/warm_start_data_split/train"
   source : "../../data/OCT2017"
   destination : "../../data"
+  source_warmup : "../../data/new_data_split/"
 
   # model paths
   path_to_logs : "logs/scalars/"
