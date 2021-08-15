@@ -40,7 +40,7 @@ pre_processing:
   # Flow
  
   color_mode: "rgb"
-  batch_size: 32
+  batch_size: 16
   target_size: 224
   shuffle: True
   seed: 1
@@ -58,7 +58,7 @@ optimizer:
   amsgrad : False
 
 fit:
-  batch_size : 32
+  batch_size : 16
   epochs : 1
   verbose : 'auto'
   validation_split : 0.0  
