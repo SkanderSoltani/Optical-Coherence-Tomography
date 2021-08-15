@@ -85,7 +85,13 @@
                 <p>
                     <input class="btn btn-primary btn-lg btn-default" type="submit" value="Submit">
                 </p>
-                <p>Our diagnosis (image added later..):</p>
+                <p>What the model focuses on in it's diagnosis:</p>
+                {% if cam_path %}
+                    <div>
+                        <img src="{{ url_for('display_image', filename=cam_path) }}">
+                    </div>
+                {% endif %}
+                <p>The diagnosis:</p>
                 {% if prediction %}
                     <div class="container">
                         <p>Predicted class: {{prediction['max_label'][0]}}</p>
