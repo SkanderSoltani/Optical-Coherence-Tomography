@@ -79,7 +79,7 @@ def get_callbacks(call_backs_dir):
     tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=log_dir)
 
     # checkpoints to save model
-    checkpoint_dir = os.path.join(params['data']['path_to_checkpoints'],'checkpoints')
+    checkpoint_dir = os.path.join(params['data']['path_to_checkpoints'],call_backs_dir,'checkpoints')
 
     checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(filepath =checkpoint_dir,
                                                          save_freq = 'epoch',
