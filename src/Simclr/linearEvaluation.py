@@ -17,8 +17,8 @@ tf.random.set_seed(666)
 np.random.seed(666)
 
 # Train and val image paths
-train_images = glob.glob("../../data/warm_start_data_split/train/*/*")
-val_images = glob.glob("../../data/warm_start_data_split/val/*/*")
+train_images = glob.glob("../../data/new_data_split/train/*/*")
+val_images = glob.glob("../../data/new_data_split/val/*/*") # 2% of the data
 test_images = glob.glob("../../data/OCT2017/test/*/*")
 print(len(train_images), len(val_images))
 
@@ -125,7 +125,7 @@ history = linear_model.fit(train_features, y_train_enc,
                            batch_size=64,
                            epochs=35,
                            callbacks=[es])
-plot_training(history)
+#plot_training(history)
 
 # Plot evaluation metrics on test data
 y_pred = linear_model.predict(test_features)
@@ -141,6 +141,7 @@ projection = Model(resnet_simclr.input, resnet_simclr.layers[-4].output)
 # Extract train and val features
 train_features = projection.predict(X_train)
 val_features = projection.predict(X_val)
+test_features = projection.predict(X_test)
 
 print(train_features.shape, val_features.shape)
 
@@ -152,7 +153,15 @@ history = linear_model.fit(train_features, y_train_enc,
                            batch_size=64,
                            epochs=35,
                            callbacks=[es])
-plot_training(history)
+#plot_training(history)
+
+# Plot evaluation metrics on test data
+y_pred = linear_model.predict(test_features)
+y_true = y_test_enc
+y_pred_max = y_pred.argmax(axis=1)
+
+print(classification_report(y_true=y_true,y_pred=y_pred_max))
+print(confusion_matrix(y_true=y_true,y_pred=y_pred_max))
 
 # Encoder model with no projection
 projection = Model(resnet_simclr.input, resnet_simclr.layers[-6].output)
@@ -160,6 +169,7 @@ projection = Model(resnet_simclr.input, resnet_simclr.layers[-6].output)
 # Extract train and val features
 train_features = projection.predict(X_train)
 val_features = projection.predict(X_val)
+test_features = projection.predict(X_test)
 
 print(train_features.shape, val_features.shape)
 
@@ -171,9 +181,15 @@ history = linear_model.fit(train_features, y_train_enc,
                            batch_size=64,
                            epochs=35,
                            callbacks=[es])
-plot_training(history)
+#plot_training(history)
+# Plot evaluation metrics on test data
+y_pred = linear_model.predict(test_features)
+y_true = y_test_enc
+y_pred_max = y_pred.argmax(axis=1)
 
-
+print(classification_report(y_true=y_true,y_pred=y_pred_max))
+print(confusion_matrix(y_true=y_true,y_pred=y_pred_max))
+"""
 # Visualization of the representations
 def plot_vecs_n_labels(v, labels):
     fig = plt.figure(figsize=(10, 10))
@@ -202,3 +218,4 @@ projection = Model(resnet_simclr.input, resnet_simclr.layers[-2].output)
 train_features = projection.predict(X_train)
 low_vectors = tsne.fit_transform(train_features)
 fig = plot_vecs_n_labels(low_vectors, y_train_enc)
+"""
