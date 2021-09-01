@@ -6,68 +6,21 @@ from utils import (
     config,
     lr_scheduler,
     lars_optimizer,
+    data_loader
 )
 from models import wide_resnet
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import time
 
-#Original:
+
 # Load dataset
-#(x_train, y_train), (_, _) = tf.keras.datasets.cifar10.load_data()
-
-#Our data load:
-from tqdm import tqdm
-import os
-import cv2
-import numpy as np
-from skimage.transform import resize
-
-
-imageSize = 224
-train_dir = "../../data/warm_start_data_split/train/"
-#test_dir = "../../data/warm_start_data_split/val/"
-
-
-# ['DME', 'CNV', 'NORMAL', '.DS_Store', 'DRUSEN']
-def get_data(folder):
-    """
-    Load the data and labels from the given folder.
-    """
-    X = []
-    y = []
-    for folderName in os.listdir(folder):
-        if not folderName.startswith('.'):
-            if folderName in ['NORMAL']:
-                label = 0
-            elif folderName in ['CNV']:
-                label = 1
-            elif folderName in ['DME']:
-                label = 2
-            elif folderName in ['DRUSEN']:
-                label = 3
-            else:
-                label = 4
-
-            for image_filename in tqdm(os.listdir(folder + folderName)):
-                img_file = cv2.imread(folder + folderName + '/' + image_filename)
-                if img_file is not None:
-                    img_file = resize(img_file, (imageSize, imageSize, 3))
-                    img_arr = np.asarray(img_file)
-                    X.append(img_arr)
-                    y.append(label)
-    X = np.asarray(X)
-    y = np.asarray(y)
-    return X, y
-
-
-x_train, y_train = get_data(train_dir)
-#x_test, y_test = get_data(test_dir)
+x_train,_,y_train,_ = data_loader.get_train_test_ds()
 
 # Constants
 AUTO = tf.data.AUTOTUNE
 STEPS_PER_EPOCH = int(len(x_train) // config.MULTICROP_BS)
-WARMUP_EPOCHS = 10
+WARMUP_EPOCHS = 2
 WARMUP_STEPS = int(WARMUP_EPOCHS * STEPS_PER_EPOCH)
 
 # Prepare Dataset object for multicrop

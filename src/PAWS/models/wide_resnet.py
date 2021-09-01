@@ -53,26 +53,33 @@ def prediction_head(x, hidden_dim=128, mx=4):
 
 
 def get_network(hidden_dim=128, use_pred=False, return_before_head=True):
+
+    inputs = layers.Input(shape=(None, None, 3))
+    # scalling
+    x = layers.experimental.preprocessing.Rescaling(scale=1.0 / 255)(inputs)
+    x = layers.experimental.preprocessing.Normalization(
+        mean=[0.18223771, 0.18223771, 0.18223771],
+        variance=[i ** 2 for i in [0.2131636, 0.2131636, 0.2131636]],
+    )(x)
+
+
+    # trunk & trunk output
+    trunk = tf.keras.applications.ResNet50V2(include_top=False)(x)
+    trunk_outputs = layers.GlobalAveragePooling2D()(trunk)
     
-
-
-    trunk = tf.keras.applications.ResNet50V2(include_top=True,input_shape=(224,224,3))
-    last_layer= trunk.get_layer("avg_pool")
-    trunk_outputs = last_layer.output
-
     # Projections
     projection_outputs = projection_head(trunk_outputs, hidden_dim=hidden_dim)
     if return_before_head:
-        model = tf.keras.Model(trunk.input, [trunk_outputs, projection_outputs])
+        model = tf.keras.Model(inputs, [trunk_outputs, projection_outputs])
     else:
-        model = tf.keras.Model(trunk.input, projection_outputs)
+        model = tf.keras.Model(inputs, projection_outputs)
 
     # Predictions
     if use_pred:
         prediction_outputs = prediction_head(projection_outputs)
         if return_before_head:
-            model = tf.keras.Model(trunk.input, [projection_outputs, prediction_outputs])
+            model = tf.keras.Model(inputs, [projection_outputs, prediction_outputs])
         else:
-            model = tf.keras.Model(trunk.input, prediction_outputs)
+            model = tf.keras.Model(inputs, prediction_outputs)
 
     return model
