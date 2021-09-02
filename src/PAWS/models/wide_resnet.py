@@ -13,11 +13,11 @@ import tensorflow as tf
 
 WEIGHT_DECAY = 1e-6
 INIT = "he_normal"
-DEPTH = 28
-WIDTH_MULT = 2
+# DEPTH = 28
+# WIDTH_MULT = 2
 
 
-def projection_head(x, hidden_dim=128):
+def projection_head(x, hidden_dim=512):
     """Constructs the projection head."""
     for i in range(2):
         x = layers.Dense(
@@ -32,7 +32,7 @@ def projection_head(x, hidden_dim=128):
     return outputs
 
 
-def prediction_head(x, hidden_dim=128, mx=4):
+def prediction_head(x, hidden_dim=512, mx=4):
     """Constructs the prediction head."""
     x = layers.BatchNormalization(epsilon=1e-05, momentum=0.1)(x)
     x = layers.Dense(
@@ -52,14 +52,14 @@ def prediction_head(x, hidden_dim=128, mx=4):
     return x
 
 
-def get_network(hidden_dim=128, use_pred=False, return_before_head=True):
+def get_network(hidden_dim=512, use_pred=False, return_before_head=True):
 
     inputs = layers.Input(shape=(None, None, 3))
     # scalling
     x = layers.experimental.preprocessing.Rescaling(scale=1.0 / 255)(inputs)
     x = layers.experimental.preprocessing.Normalization(
-        mean=[0.18223771, 0.18223771, 0.18223771],
-        variance=[i ** 2 for i in [0.2131636, 0.2131636, 0.2131636]],
+        mean=[0.19833007, 0.19833007, 0.19833007],
+        variance=[i ** 2 for i in [0.22377273, 0.22377273, 0.22377273]],
     )(x)
 
 
