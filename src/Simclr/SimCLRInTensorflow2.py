@@ -9,7 +9,6 @@ from losses import _dot_simililarity_dim1 as sim_func_dim1, _dot_simililarity_di
 import helpers
 import time
 
-CROP_TO = 180
 start = time.time()
 
 # Random seed fixation
@@ -17,7 +16,7 @@ tf.random.set_seed(666)
 np.random.seed(666)
 # following https://github.com/sayakpaul/SimCLR-in-TensorFlow-2
 # Train image paths
-train_images = glob.glob("../../data/warm_start_data_split/train/*/*")
+train_images = glob.glob("../../data/new_data_split/train/*/*")
 print(len(train_images))
 
 
@@ -27,10 +26,34 @@ print(len(train_images))
 
 class CustomAugment(object):
     def __call__(self, sample):
+        # cropping
+        batch_size = sample.get_shape().as_list()[0]
+        print(batch_size)
+        batch_holder = np.zeros((batch_size, 224, 224, 3))
+        j=0
+        image_shape = 286
+        crop_size = 224
+        scale = [0.5, 0.9]
+        for image in sample:
+            image = tf.image.resize(image, (image_shape, image_shape))
+            # Get the crop size for given scale
+            size = tf.random.uniform(
+                shape=(1,),
+                minval=scale[0] * image_shape,
+                maxval=scale[1] * image_shape,
+                dtype=tf.float32,
+            )
+            size = tf.cast(size, tf.int32)[0]
+            # Get the crop from the image
+            crop = tf.image.random_crop(image, (size, size, 3))
+            crop_resize = tf.image.resize(crop, (crop_size, crop_size))
+
+            batch_holder[j, :] = crop_resize
+            j = j+1
+
+
         # Random flips
-
-        sample = self._random_apply(tf.image.flip_left_right, sample, p=0.5)
-
+        sample = self._random_apply(tf.image.flip_left_right, batch_holder, p=0.5)
         # Randomly apply transformation (color distortions) with probability p.
         sample = self._random_apply(self._color_jitter, sample, p=0.8)
         sample = self._random_apply(self._color_drop, sample, p=0.2)
@@ -40,7 +63,7 @@ class CustomAugment(object):
     def _color_jitter(self, x, s=1):
         # one can also shuffle the order of following augmentations
         # each time they are applied.
-        x = tf.image.random_brightness(x, max_delta=0.5 * s) #changed from 0.8 to avoid black images
+        x = tf.image.random_brightness(x, max_delta=0.2 * s) #changed from 0.8 to avoid black images
         x = tf.image.random_contrast(x, lower=1 - 0.8 * s, upper=1 + 0.8 * s)
         x = tf.image.random_saturation(x, lower=1 - 0.8 * s, upper=1 + 0.8 * s)
         x = tf.image.random_hue(x, max_delta=0.2 * s)
@@ -72,7 +95,6 @@ def parse_images(image_path):
     image = tf.image.decode_jpeg(image_string, channels=3)
     image = tf.image.convert_image_dtype(image, tf.float32)
     image = tf.image.resize(image, size=[224, 224])
-
     return image
 
 
@@ -152,9 +174,6 @@ def train_step(xis, xjs, model, optimizer, criterion, temperature):
     return loss
 
 
-# wandb.init(project="simclr")
-
-
 def train_simclr(model, dataset, optimizer, criterion,
                  temperature=0.1, epochs=100):
     step_wise_loss = []
@@ -165,17 +184,19 @@ def train_simclr(model, dataset, optimizer, criterion,
         for image_batch in dataset:
             a = data_augmentation(image_batch)
             b = data_augmentation(image_batch)
-            """plt.imshow(image_batch[0])
-            plt.show()
+            """
+            #check some augmented image pairs and the original image
+            plt.imshow(image_batch[0])
+            plt.show() # original
             plt.imshow(a[0])
-            plt.show()
+            plt.show() # first augmentation
             plt.imshow(b[0])
-            plt.show()"""
+            plt.show() # second augmentation
+            """
             loss = train_step(a, b, model, optimizer, criterion, temperature)
             step_wise_loss.append(loss)
 
         epoch_wise_loss.append(np.mean(step_wise_loss))
-        # wandb.log({"nt_xentloss": np.mean(step_wise_loss)})
 
         if epoch % 10 == 0:
             print("epoch: {} loss: {:.3f}".format(epoch + 1, np.mean(step_wise_loss)))
@@ -207,104 +228,3 @@ with plt.xkcd():
 
 resnet_simclr.save_weights("sim_weights")
 print("saved weights")
-"""
-def prepare_images(image_paths):
-    images = []
-    labels = []
-
-    for image in tqdm(image_paths):
-        image_pixels = plt.imread(image)
-        image_pixels = cv2.resize(image_pixels, (224, 224))
-        image_pixels = image_pixels / 255.
-
-        label = image.split("/")[2].split("_")[0]
-
-        images.append(image_pixels)
-        labels.append(label)
-
-    images = np.array(images)
-    labels = np.array(labels)
-
-    print(images.shape, labels.shape)
-
-    return images, labels
-
-
-X_train, y_train = prepare_images(train_images)
-X_test, y_test = prepare_images(test_images)
-
-le = LabelEncoder()
-y_train_enc = le.fit_transform(y_train)
-y_test_enc = le.transform(y_test)
-
-# Set up TensorFlow dataset for performance optimization
-
-AUTO = tf.data.experimental.AUTOTUNE
-BATCH_SIZE = 64
-
-train_ds = (
-    tf.data.Dataset.from_tensor_slices((X_train, y_train_enc))
-        .shuffle(1024)
-        .batch(BATCH_SIZE)
-        .prefetch(AUTO)
-)
-
-test_ds = (
-    tf.data.Dataset.from_tensor_slices((X_test, y_test_enc))
-        .shuffle(1024)
-        .batch(BATCH_SIZE)
-        .prefetch(AUTO)
-)
-
-
-# Architecture utils
-def get_resnet():
-    base_model = tf.keras.applications.ResNet50(include_top=False, weights=None, input_shape=(224, 224, 3))
-    base_model.trainable = True
-
-    inputs = Input((224, 224, 3))
-    features = base_model(inputs, training=False)
-    pooled_features = GlobalAveragePooling2D()(features)
-
-    pooled_features = Dense(256)(pooled_features)
-    pooled_features = Activation("relu")(pooled_features)
-    outputs = Dense(5, activation="softmax")(pooled_features)
-
-    resnet_simclr = Model(inputs, outputs)
-
-    return resnet_simclr
-
-
-def plot_training(H):
-    with plt.xkcd():
-        plt.plot(H.history["loss"], label="train_loss")
-        plt.plot(H.history["val_loss"], label="val_loss")
-        plt.plot(H.history["accuracy"], label="train_acc")
-        plt.plot(H.history["val_accuracy"], label="val_acc")
-        plt.title("Training Loss and Accuracy")
-        plt.xlabel("Epoch #")
-        plt.ylabel("Loss/Accuracy")
-        plt.legend(loc="lower left")
-        plt.show()
-
-
-# Early Stopping to prevent overfitting
-es = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=2, verbose=2, restore_best_weights=True)
-
-get_resnet().summary()
-
-
-
-# Train the supervised model with full data
-wandb.init(project="simclr", id="supervised-training")
-
-model = get_resnet()
-model.compile(loss="sparse_categorical_crossentropy", metrics=["accuracy"],
-              optimizer=tf.keras.optimizers.Adam(1e-3))
-history = model.fit(train_ds,
-                    validation_data=test_ds,
-                    epochs=50,
-                    callbacks=[es, WandbCallback()])
-plot_training(history)
-
-"""
