@@ -2,7 +2,9 @@ import os
 import numpy as np
 import shutil
 import yaml
-from tensorflow.keras.applications.resnet_v2 import preprocess_input
+from tensorflow.keras.applications.resnet_v2 import preprocess_input as preprocess_resnet
+from tensorflow.keras.applications.inception_v3 import preprocess_input as preprocess_inception
+from tensorflow.keras.applications.mobilenet_v3 import preprocess_input as preprocess_mobilenet
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 # Function to load yaml configuration file
@@ -18,30 +20,38 @@ class PreProcessing:
 	
 
 	def data_generator_with_aug(self):
-		datagen = ImageDataGenerator(preprocessing_function=preprocess_input,
-											featurewise_center            = self._config['pre_processing']['featurewise_center'], 
-											samplewise_center             = self._config['pre_processing']['samplewise_center'],
-											featurewise_std_normalization = self._config['pre_processing']['featurewise_std_normalization'],
-											samplewise_std_normalization  = self._config['pre_processing']['samplewise_std_normalization'],
-											zca_whitening                 = self._config['pre_processing']['zca_whitening'],
-											zca_epsilon                   = self._config['pre_processing']['zca_epsilon'],
-											rotation_range                = self._config['pre_processing']['rotation_range'],
-											width_shift_range             = self._config['pre_processing']['width_shift_range'],
-											height_shift_range            = self._config['pre_processing']['height_shift_range'],
-											brightness_range              = self._config['pre_processing']['brightness_range'],
-											shear_range                   = self._config['pre_processing']['shear_range'],
-											zoom_range                    = self._config['pre_processing']['zoom_range'],
-											channel_shift_range           = self._config['pre_processing']['channel_shift_range'],
-											fill_mode                     = self._config['pre_processing']['fill_mode'],
-											cval                          = self._config['pre_processing']['cval'],
-											horizontal_flip               = self._config['pre_processing']['horizontal_flip'],
-											vertical_flip                 = self._config['pre_processing']['vertical_flip'])
+		model_input = self._config['pre_processing']['input']
+		datagen = ImageDataGenerator(preprocessing_function=preprocess_resnet if model_input == "resnet"
+									else preprocess_inception if model_input == "inception"
+									else preprocess_mobilenet if model_input == "mobilenet"
+									else None,
+									featurewise_center            = self._config['pre_processing']['featurewise_center'],
+									samplewise_center             = self._config['pre_processing']['samplewise_center'],
+									featurewise_std_normalization = self._config['pre_processing']['featurewise_std_normalization'],
+									samplewise_std_normalization  = self._config['pre_processing']['samplewise_std_normalization'],
+									zca_whitening                 = self._config['pre_processing']['zca_whitening'],
+									zca_epsilon                   = self._config['pre_processing']['zca_epsilon'],
+									rotation_range                = self._config['pre_processing']['rotation_range'],
+									width_shift_range             = self._config['pre_processing']['width_shift_range'],
+									height_shift_range            = self._config['pre_processing']['height_shift_range'],
+									brightness_range              = self._config['pre_processing']['brightness_range'],
+									shear_range                   = self._config['pre_processing']['shear_range'],
+									zoom_range                    = self._config['pre_processing']['zoom_range'],
+									channel_shift_range           = self._config['pre_processing']['channel_shift_range'],
+									fill_mode                     = self._config['pre_processing']['fill_mode'],
+									cval                          = self._config['pre_processing']['cval'],
+									horizontal_flip               = self._config['pre_processing']['horizontal_flip'],
+									vertical_flip                 = self._config['pre_processing']['vertical_flip'])
 											
 		return datagen
 
 
 	def data_generator_no_aug(self):
-		datagen= ImageDataGenerator(preprocessing_function=preprocess_input)
+		model_input = self._config['pre_processing']['input']
+		datagen= ImageDataGenerator(preprocessing_function=preprocess_resnet if model_input == "resnet"
+									else preprocess_inception if model_input == "inception"
+									else preprocess_mobilenet if model_input == "mobilenet"
+									else None)
 		return datagen
 
 
@@ -54,15 +64,7 @@ class PreProcessing:
 				batch_size           = self._config['pre_processing']['batch_size'],
 				target_size          = (self._config['pre_processing']['target_size'],self._config['pre_processing']['target_size']),
 				shuffle              = self._config['pre_processing']['shuffle'])
-		else:
-			data_generator = self.data_generator_no_aug()
-			gen = data_generator.flow_from_directory(
-				directory            = path,
-				color_mode           = self._config['pre_processing']['color_mode'],
-				batch_size           = self._config['pre_processing']['batch_size'],
-				target_size          = (self._config['pre_processing']['target_size'],self._config['pre_processing']['target_size']),
-				shuffle              = self._config['pre_processing']['shuffle'])
-		if test_gen:
+		elif test_gen:
 			data_generator = self.data_generator_no_aug()
 			gen = data_generator.flow_from_directory(
 				directory            = path,
@@ -70,6 +72,14 @@ class PreProcessing:
 				batch_size           = self._config['pre_processing']['batch_size'],
 				target_size          = (self._config['pre_processing']['target_size'],self._config['pre_processing']['target_size']),
 				shuffle              = False)
+		else:
+			data_generator = self.data_generator_no_aug()
+			gen = data_generator.flow_from_directory(
+				directory            = path,
+				color_mode           = self._config['pre_processing']['color_mode'],
+				batch_size           = self._config['pre_processing']['batch_size'],
+				target_size          = (self._config['pre_processing']['target_size'],self._config['pre_processing']['target_size']),
+				shuffle = self._config['pre_processing']['shuffle'])
 
 		return gen 
 

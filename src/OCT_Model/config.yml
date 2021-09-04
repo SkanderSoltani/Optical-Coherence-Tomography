@@ -16,6 +16,9 @@ pre_processing:
   #Split
   train_val_split : 0.98
   warmup_split : 0.05
+
+  # Model
+  input : "resnet"
   
   # Augmentation
   featurewise_center : False
@@ -59,7 +62,7 @@ optimizer:
 
 fit:
   batch_size : 32
-  epochs : 1
+  epochs : 50
   verbose : 'auto'
   validation_split : 0.0  
   shuffle : False 
@@ -67,7 +70,7 @@ fit:
   sample_weight : 
   initial_epoch : 0
   steps_per_epoch : 2557 # needs to be an integer// calculated as training Sample size // Batch Size
-  validation_steps :  53 # needs to be an integer// calculated as Validation Sample size // Batch Size
+  validation_steps :  53   # needs to be an integer// calculated as Validation Sample size // Batch Size
   validation_batch_size : 
   validation_freq : 1
   max_queue_size : 10
