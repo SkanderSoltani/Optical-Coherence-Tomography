@@ -17,17 +17,40 @@ tf.random.set_seed(666)
 np.random.seed(666)
 
 # Train and val image paths
-train_images = glob.glob("../../data/new_data_split/train/*/*")
+#train_images = glob.glob("../../data/new_data_split/train/*/*")
 val_images = glob.glob("../../data/new_data_split/val/*/*") # 2% of the data
 test_images = glob.glob("../../data/OCT2017/test/*/*")
-print(len(train_images), len(val_images))
+print(len(val_images))
 
-# 10% of the dataset
-train_images_10 = np.random.choice(train_images, len(train_images) // 10)
-print(len(train_images_10))
+
+def get_train_images(train_percentage):
+    """
+    :param train_percentage: the percentage of samples wanted for the training dataset
+    :return: balanced set of training data
+    """
+    train_images_cnv = glob.glob("../../data/new_data_split/train/CNV/*")
+    train_images_drusen = glob.glob("../../data/new_data_split/train/DRUSEN/*")
+    train_images_normal = glob.glob("../../data/new_data_split/train/NORMAL/*")
+    train_images_dme = glob.glob("../../data/new_data_split/train/DME/*")
+
+    train_images_cnv = np.random.choice(train_images_cnv, round(len(train_images_cnv) * (train_percentage/100)), replace=False)
+    train_images_drusen = np.random.choice(train_images_drusen, round(len(train_images_drusen) * (train_percentage/100)), replace=False)
+    train_images_normal = np.random.choice(train_images_normal, round(len(train_images_normal) * (train_percentage/100)), replace=False)
+    train_images_dme = np.random.choice(train_images_dme, round(len(train_images_dme) * (train_percentage/100)), replace=False)
+
+    list1 = np.append(train_images_dme, train_images_normal)
+    list2 = np.append(train_images_cnv, train_images_drusen)
+    return np.append(list1, list2)
+
+
+train_images_10 = get_train_images(10)
 
 
 def prepare_images(image_paths):
+    """
+    :param image_paths: paths to images
+    :return: numpy array of images and labels
+    """
     images = []
     labels = []
 
@@ -100,12 +123,21 @@ def plot_training(H):
 
 def get_linear_model(features):
     linear_model = Sequential([Dense(4, input_shape=(features,), activation="softmax")])
+    """[
+        Dense(1024, input_shape=(features,), activation="relu"),
+        Dense(512, activation='relu'),
+        Dense(256, activation='relu'),
+        Dense(4, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(l2=0.0))
+    ]"""
     return linear_model
 
 
 resnet_simclr.layers[1].trainable = False
 resnet_simclr.summary()
+# Early Stopping to prevent overfitting
+es = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, verbose=2, restore_best_weights=True)
 
+"""
 # Encoder model with non-linear projections
 projection = Model(resnet_simclr.input, resnet_simclr.layers[-2].output)
 
@@ -113,9 +145,6 @@ projection = Model(resnet_simclr.input, resnet_simclr.layers[-2].output)
 train_features = projection.predict(X_train)
 val_features = projection.predict(X_val)
 test_features = projection.predict(X_test)
-
-# Early Stopping to prevent overfitting
-es = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=2, verbose=2, restore_best_weights=True)
 
 linear_model = get_linear_model(128)
 linear_model.compile(loss="sparse_categorical_crossentropy", metrics=["accuracy"],
@@ -125,7 +154,7 @@ history = linear_model.fit(train_features, y_train_enc,
                            batch_size=64,
                            epochs=35,
                            callbacks=[es])
-#plot_training(history)
+plot_training(history)
 
 # Plot evaluation metrics on test data
 y_pred = linear_model.predict(test_features)
@@ -153,7 +182,7 @@ history = linear_model.fit(train_features, y_train_enc,
                            batch_size=64,
                            epochs=35,
                            callbacks=[es])
-#plot_training(history)
+plot_training(history)
 
 # Plot evaluation metrics on test data
 y_pred = linear_model.predict(test_features)
@@ -162,7 +191,7 @@ y_pred_max = y_pred.argmax(axis=1)
 
 print(classification_report(y_true=y_true,y_pred=y_pred_max))
 print(confusion_matrix(y_true=y_true,y_pred=y_pred_max))
-
+"""
 # Encoder model with no projection
 projection = Model(resnet_simclr.input, resnet_simclr.layers[-6].output)
 
@@ -181,7 +210,7 @@ history = linear_model.fit(train_features, y_train_enc,
                            batch_size=64,
                            epochs=35,
                            callbacks=[es])
-#plot_training(history)
+plot_training(history)
 # Plot evaluation metrics on test data
 y_pred = linear_model.predict(test_features)
 y_true = y_test_enc
@@ -189,7 +218,7 @@ y_pred_max = y_pred.argmax(axis=1)
 
 print(classification_report(y_true=y_true,y_pred=y_pred_max))
 print(confusion_matrix(y_true=y_true,y_pred=y_pred_max))
-"""
+linear_model.save("SimCLR_model")
 # Visualization of the representations
 def plot_vecs_n_labels(v, labels):
     fig = plt.figure(figsize=(10, 10))
@@ -199,7 +228,7 @@ def plot_vecs_n_labels(v, labels):
 
     return fig
 
-
+"""
 # Representations with no nonlinear projections
 tsne = TSNE()
 low_vectors = tsne.fit_transform(train_features)

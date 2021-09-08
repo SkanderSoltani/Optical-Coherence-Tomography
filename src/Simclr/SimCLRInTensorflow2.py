@@ -114,7 +114,7 @@ print("train_ds done - tf dataset")
 
 # Architecture utils
 def get_resnet_simclr(hidden_1, hidden_2, hidden_3):
-    base_model = tf.keras.applications.ResNet50(include_top=False, weights=None, input_shape=(224, 224, 3))
+    base_model = tf.keras.applications.ResNet50(include_top=False, weights='imagenet', input_shape=(224, 224, 3))
     base_model.trainable = True
     inputs = Input((224, 224, 3))
     h = base_model(inputs, training=True)
