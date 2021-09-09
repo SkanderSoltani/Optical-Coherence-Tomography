@@ -114,3 +114,6 @@ ENV/
 
 # macOS stuff
 .DS_Store
+
+# wandb.ai stuff
+src/Simclr/wandb
