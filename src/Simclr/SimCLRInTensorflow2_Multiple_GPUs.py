@@ -4,10 +4,26 @@ from tensorflow.keras.models import *
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
+import wandb
 import glob
 from losses import _dot_simililarity_dim1 as sim_func_dim1, _dot_simililarity_dim2 as sim_func_dim2
 import helpers
 import time
+
+# Logging into wandb.ai
+wandb.login(key="e215c1e2d81816b1de837c53fa0f9b9a5dbd4407")
+
+# Setup a Strategy for distributed training on multiple GPUs in case we have multiple gpus available
+if tf.config.list_physical_devices('GPU'):
+    # Use the Mirrored Strategy
+    print("Using Mirrored Strategy for Distributed Training with the following GPUs:\n")
+    print(tf.config.list_physical_devices('GPU'))
+    strategy = tf.distribute.MirroredStrategy()
+else:
+    # Use the Default Strategy
+    strategy = tf.distribute.get_strategy()
+    print("Using Default Strategy - No GPUs found:\n")
+    print(tf.config.list_physical_devices('GPU'))
 
 start = time.time()
 
@@ -16,7 +32,8 @@ tf.random.set_seed(666)
 np.random.seed(666)
 # following https://github.com/sayakpaul/SimCLR-in-TensorFlow-2
 # Train image paths
-train_images = glob.glob("../../data/new_data_split/train/*/*")
+#train_images = glob.glob("../../data/new_data_split/train/*/*")
+train_images = glob.glob("../../data/warm_start_data_split/train/*/*")
 print(len(train_images))
 
 
@@ -28,7 +45,7 @@ class CustomAugment(object):
     def __call__(self, sample):
         # cropping
         batch_size = sample.get_shape().as_list()[0]
-        print(batch_size)
+        #print(batch_size)
         batch_holder = np.zeros((batch_size, 224, 224, 3))
         j=0
         image_shape = 286
@@ -100,16 +117,21 @@ def parse_images(image_path):
 
 # Create TensorFlow dataset
 BATCH_SIZE = 64
+# Global batch size is the batch size x the number of GPUs, for ex: 64 x 4 (GPUs) = 256
+GLOBAL_BATCH_SIZE = (BATCH_SIZE * strategy.num_replicas_in_sync)
 
 train_ds = tf.data.Dataset.from_tensor_slices(train_images)
 train_ds = (
     train_ds
         .map(parse_images, num_parallel_calls=tf.data.experimental.AUTOTUNE)
         .shuffle(1024)
-        .batch(BATCH_SIZE, drop_remainder=True)
+        .batch(GLOBAL_BATCH_SIZE, drop_remainder=True)
         .prefetch(tf.data.experimental.AUTOTUNE)
 )
 print("train_ds done - tf dataset")
+
+dist_train_ds = strategy.experimental_distribute_dataset(train_ds)
+print("dist_train_ds done - tf distributed dataset")
 
 
 # Architecture utils
@@ -166,39 +188,45 @@ def train_step(xis, xjs, model, optimizer, criterion, temperature):
             logits = tf.concat([l_pos, l_neg], axis=1)
             loss += criterion(y_pred=logits, y_true=labels)
 
-        loss = loss / (2 * BATCH_SIZE)
+        #loss = loss / (2 * BATCH_SIZE)
+        loss = loss / 2
+
+        # Dividing the loss by the Global Batch Size
+        # This is important because later after the gradients are calculated on each replica,
+        # they are aggregated across the replicas by summing them.
+        loss = tf.nn.compute_average_loss(loss, global_batch_size=GLOBAL_BATCH_SIZE)
 
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
     return loss
 
+@tf.function
+def distributed_train_step(a, b, model, optimizer, criterion, temperature):
+    per_replica_losses = strategy.run(train_step, args=(a, b, model, optimizer, criterion, temperature,))
+    return strategy.reduce(tf.distribute.ReduceOp.SUM, per_replica_losses, axis=None)
+
+wandb.init(project="simclr_oct", entity="gilsanzovo", id="m_gpus-full_dataset-30_epochs")
 
 def train_simclr(model, dataset, optimizer, criterion,
                  temperature=0.1, epochs=100):
     step_wise_loss = []
     epoch_wise_loss = []
     print("got to training function")
-    print(len(dataset))
+    #print(len(dataset))
     for epoch in tqdm(range(epochs)):
         for image_batch in dataset:
             a = data_augmentation(image_batch)
             b = data_augmentation(image_batch)
-            """
-            #check some augmented image pairs and the original image
-            plt.imshow(image_batch[0])
-            plt.show() # original
-            plt.imshow(a[0])
-            plt.show() # first augmentation
-            plt.imshow(b[0])
-            plt.show() # second augmentation
-            """
-            loss = train_step(a, b, model, optimizer, criterion, temperature)
+
+            #loss = train_step(a, b, model, optimizer, criterion, temperature)
+            loss = distributed_train_step(a, b, model, optimizer, criterion, temperature)
             step_wise_loss.append(loss)
 
         epoch_wise_loss.append(np.mean(step_wise_loss))
+        wandb.log({"nt_xentloss": np.mean(step_wise_loss)})
 
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             print("epoch: {} loss: {:.3f}".format(epoch + 1, np.mean(step_wise_loss)))
         print("end of epoch. Been running:")
         end = time.time()
@@ -208,23 +236,24 @@ def train_simclr(model, dataset, optimizer, criterion,
     print(end - start)
     return epoch_wise_loss, model
 
+with strategy.scope():
+    criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,
+                                                              reduction=tf.keras.losses.Reduction.NONE)
+    decay_steps = 1000
+    lr_decayed_fn = tf.keras.experimental.CosineDecay(
+        initial_learning_rate=0.1, decay_steps=decay_steps)
+    optimizer = tf.keras.optimizers.SGD(lr_decayed_fn)
 
-criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,
-                                                          reduction=tf.keras.losses.Reduction.SUM)
-decay_steps = 1000
-lr_decayed_fn = tf.keras.experimental.CosineDecay(
-    initial_learning_rate=0.1, decay_steps=decay_steps)
-optimizer = tf.keras.optimizers.SGD(lr_decayed_fn)
+    resnet_simclr_2 = get_resnet_simclr(256, 128, 50)
 
-resnet_simclr_2 = get_resnet_simclr(256, 128, 50)
-print("starting training for 20 epochs")
-epoch_wise_loss, resnet_simclr = train_simclr(resnet_simclr_2, train_ds, optimizer, criterion,
-                                              temperature=0.1, epochs=20)  # epochs=200
+print("starting training for 30 epochs")
+epoch_wise_loss, resnet_simclr = train_simclr(resnet_simclr_2, dist_train_ds, optimizer, criterion,
+                                              temperature=0.1, epochs=30)  # epochs=200
 print("finished training")
 with plt.xkcd():
     plt.plot(epoch_wise_loss)
     plt.title("tau = 0.1, h1 = 256, h2 = 128, h3 = 50")
     plt.show()
 
-resnet_simclr.save_weights("checkPoints/v1_sim_weights")
+resnet_simclr.save_weights("checkPoints/v1_m_gpus_full_dataset_sim_weights")
 print("saved weights")
