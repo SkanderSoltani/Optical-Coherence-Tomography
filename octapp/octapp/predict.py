@@ -3,6 +3,7 @@ import operator
 import os
 from .gradCam import *
 from flask import current_app
+from tensorflow.keras.applications.resnet_v2 import preprocess_input as preprocess_resnet
 
 # last convolutional layer name for GradCam
 last_conv_layer_name = 'conv5_block3_out'
@@ -24,7 +25,9 @@ def prepare_image(image, target):
     img = image.resize(target)
     x = img_to_array(img)
     x = np.expand_dims(x, axis=0)
-    x = x / 255
+    #x = x / 255
+
+    x = preprocess_resnet(x)
 
     # return the processed image
     return x
@@ -40,6 +43,7 @@ def predict(image, filename, upload_folder):
     img = prepare_image(image, target=(224, 224))
     # classify the input image and then initialize the list
     # of predictions to return to the client
+    print(img.shape)
     preds = current_app.model.predict(img)
 
     # add all the predictions to the dictionary 'data'
@@ -54,6 +58,7 @@ def predict(image, filename, upload_folder):
 
     # save gradcam image
     # Remove last layer's softmax
+    #current_app.model.summary()
     current_app.model.layers[-1].activation = None
 
     heatmap = make_gradcam_heatmap(img, current_app.model, last_conv_layer_name)

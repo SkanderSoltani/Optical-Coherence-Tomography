@@ -32,11 +32,14 @@ def get_train_images(train_percentage):
     train_images_drusen = glob.glob("../../data/new_data_split/train/DRUSEN/*")
     train_images_normal = glob.glob("../../data/new_data_split/train/NORMAL/*")
     train_images_dme = glob.glob("../../data/new_data_split/train/DME/*")
+    #balance the dataset
+    image_count = len(train_images_dme) + len(train_images_normal) + len(train_images_drusen) + len(train_images_cnv)
+    train_image_count_per_class = image_count * train_percentage/100/4
 
-    train_images_cnv = np.random.choice(train_images_cnv, round(len(train_images_cnv) * (train_percentage/100)), replace=False)
-    train_images_drusen = np.random.choice(train_images_drusen, round(len(train_images_drusen) * (train_percentage/100)), replace=False)
-    train_images_normal = np.random.choice(train_images_normal, round(len(train_images_normal) * (train_percentage/100)), replace=False)
-    train_images_dme = np.random.choice(train_images_dme, round(len(train_images_dme) * (train_percentage/100)), replace=False)
+    train_images_cnv = np.random.choice(train_images_cnv, round(train_image_count_per_class), replace=False)
+    train_images_drusen = np.random.choice(train_images_drusen, round(train_image_count_per_class), replace=False)
+    train_images_normal = np.random.choice(train_images_normal, round(train_image_count_per_class), replace=False)
+    train_images_dme = np.random.choice(train_images_dme, round(train_image_count_per_class), replace=False)
 
     list1 = np.append(train_images_dme, train_images_normal)
     list2 = np.append(train_images_cnv, train_images_drusen)
