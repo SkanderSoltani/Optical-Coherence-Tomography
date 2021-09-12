@@ -23,7 +23,6 @@ np.random.seed(666)
 train_images = glob.glob("../../data/new_data_split/train/*/*")
 print(len(train_images))
 
-
 # Augmentation utilities (differs from the original implementation)
 # Referred from: https://arxiv.org/pdf/2002.05709.pdf (Appendxi A
 # corresponding GitHub: https://github.com/google-research/simclr/)
@@ -185,7 +184,7 @@ def train_simclr(model, dataset, optimizer, criterion,
     step_wise_loss = []
     epoch_wise_loss = []
     print("got to training function")
-    print(len(dataset))
+    #print(len(dataset))
     for epoch in tqdm(range(epochs)):
         for image_batch in dataset:
             a = data_augmentation(image_batch)
@@ -204,7 +203,7 @@ def train_simclr(model, dataset, optimizer, criterion,
 
         epoch_wise_loss.append(np.mean(step_wise_loss))
         wandb.log({"nt_xentloss": np.mean(step_wise_loss),
-                   "learning_rate": model.optimizer.lr})
+                   "learning_rate": optimizer._decayed_lr('float32').numpy()})
 
         if epoch % 5 == 0:
             print("epoch: {} loss: {:.3f}".format(epoch + 1, np.mean(step_wise_loss)))
