@@ -115,5 +115,8 @@ ENV/
 # macOS stuff
 .DS_Store
 
-# wandb.ai stuff
+# SimCLR  wandb.ai stuff
 src/Simclr/wandb
+
+# SimCLR checkPoints
+src/Simclr/checkPoints/
