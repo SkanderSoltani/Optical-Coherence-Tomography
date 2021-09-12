@@ -4,10 +4,14 @@ from tensorflow.keras.models import *
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import numpy as np
+import wandb
 import glob
 from losses import _dot_simililarity_dim1 as sim_func_dim1, _dot_simililarity_dim2 as sim_func_dim2
 import helpers
 import time
+
+# Logging into wandb.ai
+wandb.login(key="e215c1e2d81816b1de837c53fa0f9b9a5dbd4407")
 
 start = time.time()
 
@@ -173,6 +177,8 @@ def train_step(xis, xjs, model, optimizer, criterion, temperature):
 
     return loss
 
+# Initiate a new run on wandb. Change the id parameter for the name of the run you want
+wandb.init(project="simclr_oct", entity="gilsanzovo", id="v5-full_dataset-100_epochs")
 
 def train_simclr(model, dataset, optimizer, criterion,
                  temperature=0.1, epochs=100):
@@ -197,9 +203,12 @@ def train_simclr(model, dataset, optimizer, criterion,
             step_wise_loss.append(loss)
 
         epoch_wise_loss.append(np.mean(step_wise_loss))
+        wandb.log({"nt_xentloss": np.mean(step_wise_loss),
+                   "learning_rate": lr_decayed_fn})
 
-        if epoch % 10 == 0:
+        if epoch % 5 == 0:
             print("epoch: {} loss: {:.3f}".format(epoch + 1, np.mean(step_wise_loss)))
+            resnet_simclr.save_weights("checkPoints/v5-full_dataset-100_epochs/sim_weights")
         print("end of epoch. Been running:")
         end = time.time()
         print(end - start)
@@ -207,7 +216,6 @@ def train_simclr(model, dataset, optimizer, criterion,
     end = time.time()
     print(end - start)
     return epoch_wise_loss, model
-
 
 criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,
                                                           reduction=tf.keras.losses.Reduction.SUM)
@@ -217,14 +225,14 @@ lr_decayed_fn = tf.keras.experimental.CosineDecay(
 optimizer = tf.keras.optimizers.SGD(lr_decayed_fn)
 
 resnet_simclr_2 = get_resnet_simclr(256, 128, 50)
-print("starting training for 20 epochs")
+print("starting training for 100 epochs")
 epoch_wise_loss, resnet_simclr = train_simclr(resnet_simclr_2, train_ds, optimizer, criterion,
-                                              temperature=0.1, epochs=20)  # epochs=200
+                                              temperature=0.1, epochs=100)  # epochs=200
 print("finished training")
 with plt.xkcd():
     plt.plot(epoch_wise_loss)
     plt.title("tau = 0.1, h1 = 256, h2 = 128, h3 = 50")
     plt.show()
 
-resnet_simclr.save_weights("checkPoints/v1_sim_weights")
+resnet_simclr.save_weights("checkPoints/v5-full_dataset-100_epochs/sim_weights")
 print("saved weights")
