@@ -14,12 +14,12 @@
 
         </head>
 
-    <body id="page-top" data-bs-spy="scroll" data-bs-target="#mainNav" data-bs-offset="77">
+    <body id="page-top">
         <nav class="navbar navbar-light navbar-expand-md fixed-top" id="mainNav">
             <div class="container"><a class="navbar-brand" href="#">CREW</a><button data-bs-toggle="collapse" class="navbar-toggler navbar-toggler-right" data-bs-target="#navbarResponsive" type="button" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation" value="Menu"><i class="fa fa-bars"></i></button>
                 <div class="collapse navbar-collapse" id="navbarResponsive">
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item nav-link"><a class="nav-link active" href="#about">About</a></li>
+                        <li class="nav-item nav-link"><a class="nav-link" href="#about">About</a></li>
                         <li class="nav-item nav-link"><a class="nav-link" href="#start_learning">Start learning</a></li>
                         <li class="nav-item nav-link"><a class="nav-link" href="#contact">Contact us</a></li>
                     </ul>
@@ -47,7 +47,7 @@
                         <p>AI can find and pinpoint the areas in the image that imply a pathology to assist learning.</p>
                         <p>AI has the power of making highly effective classifications with performance comparable to clinical doctors.</p>
                         <h2>How does it work</h2>
-                        <p>Resnet50, transfer learning, self-supervised methods</p>
+                        <p>Resnet50V2, transfer learning, self-supervised methods</p>
                     </div>
                 </div>
             </div>
@@ -57,52 +57,52 @@
                 <div class="col-lg-8 mx-auto">
                     <h1>upload image</h1>
                     <p>Try to diagnose this image. Does your image contain DRUSEN, CNV or CME or can the patient go home healthy and happy?</p>
-                </div>
-                <p>
-                    {% with messages = get_flashed_messages() %}
-                      {% if messages %}
-                        <ul>
-                        {% for message in messages %}
-                          <p>{{ message }}</p>
-                        {% endfor %}
-                        </ul>
-                      {% endif %}
-                    {% endwith %}
-                </p>
-                {% if filename %}
-                    <div>
-                        <img src="{{ url_for('display_image', filename=filename) }}">
-                    </div>
-                {% endif %}
-
-            </div>
-            <form align="center" method="post" action="/#start_learning" enctype="multipart/form-data" target="_self">
-                <dl>
                     <p>
-                        <input id="upload_btn" type="file" name="file" autocomplete="off" required/>
+                        {% with messages = get_flashed_messages() %}
+                          {% if messages %}
+                            <ul>
+                            {% for message in messages %}
+                              <p>{{ message }}</p>
+                            {% endfor %}
+                            </ul>
+                          {% endif %}
+                        {% endwith %}
                     </p>
-                </dl>
-                <p>
-                    <input class="btn btn-primary btn-lg btn-default" type="submit" value="Submit">
-                </p>
-                <p>What the model focuses on in it's diagnosis:</p>
-                {% if cam_path %}
-                    <div>
-                        <img src="{{ url_for('display_image', filename=cam_path) }}">
-                    </div>
-                {% endif %}
-                <p>The diagnosis:</p>
-                {% if prediction %}
-                    <div class="container">
-                        <p>Predicted class: {{prediction['max_label'][0]}}</p>
-                        <ul>
-                        {% for pred in prediction['predictions'] %}
-                           <p> {{pred.label}} , Probability: {{pred.probability}}</p>
-                        {% endfor %}
-                        </ul>
-                    </div>
-                {% endif %}
-            </form>
+                    {% if filename %}
+                        <div>
+                            <img src="{{ url_for('display_image', filename=filename) }}">
+                        </div>
+                    {% endif %}
+
+                    <form align="center" method="post" action="/#start_learning" enctype="multipart/form-data" target="_self">
+                        <dl>
+                            <p>
+                                <input class="form-control" id="upload_btn" type="file" name="file" autocomplete="off" required/>
+                            </p>
+                        </dl>
+                        <p>
+                            <input class="btn btn-primary btn-lg btn-default" type="submit" value="Submit">
+                        </p>
+                        <p>What the model focuses on in it's diagnosis:</p>
+                        {% if cam_path %}
+                            <div>
+                                <img src="{{ url_for('display_image', filename=cam_path) }}">
+                            </div>
+                        {% endif %}
+                        <p>The diagnosis:</p>
+                        {% if prediction %}
+                            <div class="container">
+                                <p>Predicted class: {{prediction['max_label'][0]}}</p>
+                                <ul>
+                                {% for pred in prediction['predictions'] %}
+                                   <p> {{pred.label}} , Probability: {{pred.probability}}</p>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                        {% endif %}
+                        </div>
+                    </form>
+            </div>
         </section>
         <section class="text-center content-section" id="contact">
             <div class="container">
