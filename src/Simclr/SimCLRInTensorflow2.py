@@ -118,7 +118,7 @@ print("train_ds done - tf dataset")
 
 # Architecture utils
 def get_resnet_simclr(hidden_1, hidden_2, hidden_3):
-    base_model = tf.keras.applications.ResNet50(include_top=False, weights='imagenet', input_shape=(224, 224, 3))
+    base_model = tf.keras.applications.ResNet50V2(include_top=False, weights='imagenet', input_shape=(224, 224, 3))
     base_model.trainable = True
     inputs = Input((224, 224, 3))
     h = base_model(inputs, training=True)
@@ -204,11 +204,11 @@ def train_simclr(model, dataset, optimizer, criterion,
 
         epoch_wise_loss.append(np.mean(step_wise_loss))
         wandb.log({"nt_xentloss": np.mean(step_wise_loss),
-                   "learning_rate": lr_decayed_fn})
+                   "learning_rate": model.optimizer.lr})
 
         if epoch % 5 == 0:
             print("epoch: {} loss: {:.3f}".format(epoch + 1, np.mean(step_wise_loss)))
-            resnet_simclr.save_weights("checkPoints/v5-full_dataset-100_epochs/sim_weights")
+            model.save_weights("checkPoints/v5-full_dataset-100_epochs/sim_weights")
         print("end of epoch. Been running:")
         end = time.time()
         print(end - start)
