@@ -120,3 +120,6 @@ src/Simclr/wandb
 
 # SimCLR checkPoints
 src/Simclr/checkPoints/
+
+# SimCLR SavedModels
+src/Simclr/SimCLR_model/

@@ -13,6 +13,9 @@ import time
 # Logging into wandb.ai
 wandb.login(key="e215c1e2d81816b1de837c53fa0f9b9a5dbd4407")
 
+# Important variables
+train_epochs = 25
+BATCH_SIZE = 64
 start = time.time()
 
 # Random seed fixation
@@ -21,7 +24,8 @@ np.random.seed(666)
 # following https://github.com/sayakpaul/SimCLR-in-TensorFlow-2
 # Train image paths
 train_images = glob.glob("../../data/new_data_split/train/*/*")
-print(len(train_images))
+num_examples = len(train_images)
+print("The number of training images is: ", num_examples)
 
 # Augmentation utilities (differs from the original implementation)
 # Referred from: https://arxiv.org/pdf/2002.05709.pdf (Appendxi A
@@ -31,7 +35,7 @@ class CustomAugment(object):
     def __call__(self, sample):
         # cropping
         batch_size = sample.get_shape().as_list()[0]
-        print(batch_size)
+        #print(batch_size)
         batch_holder = np.zeros((batch_size, 224, 224, 3))
         j=0
         image_shape = 286
@@ -101,8 +105,6 @@ def parse_images(image_path):
     return image
 
 
-# Create TensorFlow dataset
-BATCH_SIZE = 64
 
 train_ds = tf.data.Dataset.from_tensor_slices(train_images)
 train_ds = (
@@ -177,7 +179,7 @@ def train_step(xis, xjs, model, optimizer, criterion, temperature):
     return loss
 
 # Initiate a new run on wandb. Change the id parameter for the name of the run you want
-wandb.init(project="simclr_oct", entity="gilsanzovo", id="v5-full_dataset-100_epochs")
+wandb.init(project="simclr_oct", entity="gilsanzovo", id="SimCLR-full_dataset-25_epochs-training")
 
 def train_simclr(model, dataset, optimizer, criterion,
                  temperature=0.1, epochs=100):
@@ -189,15 +191,7 @@ def train_simclr(model, dataset, optimizer, criterion,
         for image_batch in dataset:
             a = data_augmentation(image_batch)
             b = data_augmentation(image_batch)
-            """
-            #check some augmented image pairs and the original image
-            plt.imshow(image_batch[0])
-            plt.show() # original
-            plt.imshow(a[0])
-            plt.show() # first augmentation
-            plt.imshow(b[0])
-            plt.show() # second augmentation
-            """
+
             loss = train_step(a, b, model, optimizer, criterion, temperature)
             step_wise_loss.append(loss)
 
@@ -207,7 +201,7 @@ def train_simclr(model, dataset, optimizer, criterion,
 
         if epoch % 5 == 0:
             print("epoch: {} loss: {:.3f}".format(epoch + 1, np.mean(step_wise_loss)))
-            model.save_weights("checkPoints/v5-full_dataset-100_epochs/sim_weights")
+            model.save_weights("checkPoints/SimCLR-full_dataset-25_epochs-training/sim_weights")
         print("end of epoch. Been running:")
         end = time.time()
         print(end - start)
@@ -218,20 +212,22 @@ def train_simclr(model, dataset, optimizer, criterion,
 
 criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True,
                                                           reduction=tf.keras.losses.Reduction.SUM)
-decay_steps = 1000
+# decay_steps = 1000
+decay_steps = num_examples * train_epochs // BATCH_SIZE + 1
+print("The number of decay_steps for the learning rate given the number of training images and the batch size is: ", decay_steps)
 lr_decayed_fn = tf.keras.experimental.CosineDecay(
     initial_learning_rate=0.1, decay_steps=decay_steps)
 optimizer = tf.keras.optimizers.SGD(lr_decayed_fn)
 
 resnet_simclr_2 = get_resnet_simclr(256, 128, 50)
-print("starting training for 100 epochs")
+print(f"starting training for {train_epochs} epochs")
 epoch_wise_loss, resnet_simclr = train_simclr(resnet_simclr_2, train_ds, optimizer, criterion,
-                                              temperature=0.1, epochs=100)  # epochs=200
+                                              temperature=0.1, epochs=train_epochs)  # epochs=25
 print("finished training")
 with plt.xkcd():
     plt.plot(epoch_wise_loss)
     plt.title("tau = 0.1, h1 = 256, h2 = 128, h3 = 50")
     plt.show()
 
-resnet_simclr.save_weights("checkPoints/v5-full_dataset-100_epochs/sim_weights")
+resnet_simclr.save_weights("checkPoints/SimCLR-full_dataset-25_epochs-training/sim_weights")
 print("saved weights")
