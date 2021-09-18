@@ -16,10 +16,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 tf.random.set_seed(666)
 np.random.seed(666)
 
-# Train and val image paths
-#train_images = glob.glob("../../data/new_data_split/train/*/*")
+# Val and Test image paths
 val_images = glob.glob("../../data/new_data_split/val/*/*") # 2% of the data
 test_images = glob.glob("../../data/OCT2017/test/*/*")
+
 print(len(val_images))
 
 
@@ -32,6 +32,7 @@ def get_train_images(train_percentage):
     train_images_drusen = glob.glob("../../data/new_data_split/train/DRUSEN/*")
     train_images_normal = glob.glob("../../data/new_data_split/train/NORMAL/*")
     train_images_dme = glob.glob("../../data/new_data_split/train/DME/*")
+
     #balance the dataset
     image_count = len(train_images_dme) + len(train_images_normal) + len(train_images_drusen) + len(train_images_cnv)
     train_image_count_per_class = image_count * train_percentage/100/4
@@ -45,7 +46,7 @@ def get_train_images(train_percentage):
     list2 = np.append(train_images_cnv, train_images_drusen)
     return np.append(list1, list2)
 
-
+# Gets a percentage of the training image
 train_images_10 = get_train_images(10)
 
 
@@ -89,7 +90,7 @@ y_test_enc = le.transform(y_test)
 
 # Architecture utils
 def get_resnet_simclr(hidden_1, hidden_2, hidden_3):
-    base_model = tf.keras.applications.ResNet50(include_top=False, weights=None, input_shape=(224, 224, 3))
+    base_model = tf.keras.applications.ResNet50V2(include_top=False, weights=None, input_shape=(224, 224, 3))
     base_model.trainable = True
     inputs = Input((224, 224, 3))
     h = base_model(inputs, training=False)
@@ -107,7 +108,7 @@ def get_resnet_simclr(hidden_1, hidden_2, hidden_3):
 
 
 resnet_simclr = get_resnet_simclr(256, 128, 50)
-resnet_simclr.load_weights(filepath="checkPoints/sim_weights")
+resnet_simclr.load_weights(filepath="checkPoints/v7-full_dataset-100_epochs/sim_weights")
 resnet_simclr.summary()
 
 
@@ -126,12 +127,7 @@ def plot_training(H):
 
 def get_linear_model(features):
     linear_model = Sequential([Dense(4, input_shape=(features,), activation="softmax")])
-    """[
-        Dense(1024, input_shape=(features,), activation="relu"),
-        Dense(512, activation='relu'),
-        Dense(256, activation='relu'),
-        Dense(4, activation='softmax', kernel_regularizer=tf.keras.regularizers.l2(l2=0.0))
-    ]"""
+
     return linear_model
 
 
@@ -140,61 +136,7 @@ resnet_simclr.summary()
 # Early Stopping to prevent overfitting
 es = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5, verbose=2, restore_best_weights=True)
 
-"""
-# Encoder model with non-linear projections
-projection = Model(resnet_simclr.input, resnet_simclr.layers[-2].output)
 
-# Extract train and val features
-train_features = projection.predict(X_train)
-val_features = projection.predict(X_val)
-test_features = projection.predict(X_test)
-
-linear_model = get_linear_model(128)
-linear_model.compile(loss="sparse_categorical_crossentropy", metrics=["accuracy"],
-                     optimizer="adam")
-history = linear_model.fit(train_features, y_train_enc,
-                           validation_data=(val_features, y_val_enc),
-                           batch_size=64,
-                           epochs=35,
-                           callbacks=[es])
-plot_training(history)
-
-# Plot evaluation metrics on test data
-y_pred = linear_model.predict(test_features)
-y_true = y_test_enc
-y_pred_max = y_pred.argmax(axis=1)
-
-print(classification_report(y_true=y_true,y_pred=y_pred_max))
-print(confusion_matrix(y_true=y_true,y_pred=y_pred_max))
-
-# Encoder model with less non-linearity
-projection = Model(resnet_simclr.input, resnet_simclr.layers[-4].output)
-
-# Extract train and val features
-train_features = projection.predict(X_train)
-val_features = projection.predict(X_val)
-test_features = projection.predict(X_test)
-
-print(train_features.shape, val_features.shape)
-
-linear_model = get_linear_model(256)
-linear_model.compile(loss="sparse_categorical_crossentropy", metrics=["accuracy"],
-                     optimizer="adam")
-history = linear_model.fit(train_features, y_train_enc,
-                           validation_data=(val_features, y_val_enc),
-                           batch_size=64,
-                           epochs=35,
-                           callbacks=[es])
-plot_training(history)
-
-# Plot evaluation metrics on test data
-y_pred = linear_model.predict(test_features)
-y_true = y_test_enc
-y_pred_max = y_pred.argmax(axis=1)
-
-print(classification_report(y_true=y_true,y_pred=y_pred_max))
-print(confusion_matrix(y_true=y_true,y_pred=y_pred_max))
-"""
 # Encoder model with no projection
 projection = Model(resnet_simclr.input, resnet_simclr.layers[-6].output)
 
