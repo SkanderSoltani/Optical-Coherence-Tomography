@@ -13,7 +13,7 @@ A deep learning system to classify images from Optical Chorerence Tomography (OC
 Data
 ----
 The dataset can be found from: https://data.mendeley.com/datasets/rscbjbr9sj/2
-It contains 84,416 images (JPEG) in 4 categories:CNV,DME, DRUSEN, NORMAL. The images are divided to train and test sets.
+It contains 84,484 images (JPEG) in 4 categories:CNV,DME, DRUSEN, NORMAL. The images are divided to train and test sets.
 
 .. image:: https://github.com/annilea/optical-coherence-tomography/blob/master/imgs/dataset.png
     :width: 400 px
