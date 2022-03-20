@@ -2,6 +2,7 @@
 
 ## Demo video
 ![](ios/Video/iOS_OCT_ai_Demo.mp4)
+https://github.com/coyotegil/optical_coherence_tomography/blob/master/ios/Video/iOS_OCT_ai_Demo.mp4
 
 ## Overview
 
