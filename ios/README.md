@@ -81,13 +81,9 @@ This launches Xcode and opens the `ImageClassification` project.
 3.  With an iOS device connected, build and run the app in Xcode.
 
 You'll have to grant permissions for the app to use the device's camera. Point
-the camera at various objects and enjoy seeing how the model classifies things!
+the camera at different retinal oct images and see how the model classifies them between CNV, DME, DRUSEN and Normal. You can download some images from the testset of the OCT 2017 dataset we used to train the models to have access to different images pertaining to these classes and to test the app. You can easily find these files on [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/kermany2018). 
+
+The app crops the image from the camera's feed to 224x224 in order to pass it through the model. In order to obtain better results, please try to frame the the oct image at the center of your phone's screen (as shown in the demo video). In our tests we were able to achieve better results by keeping the phone in portrait mode. In the future we intend to add a framing line on the screen to help guide the user through this framing process.
 
 ## Model references
-_Do not delete the empty references_ to the .tflite and .txt files after you
-clone the repo and open the project. These references will be fulfilled once the
-model and label files are downloaded when the application is built and run for
-the first time. If you delete the references to them, you can still find that
-the .tflite and .txt files are downloaded to the Model folder, the next time you
-build the application. You will have to add the references to these files in the
-bundle separately in that case.
+The model and classes files are stored in the folder ios/ImageClassification/Model under .tflite and .txt files. The app is setup to use the 'model_oct_resnet50_v2_224.tflite' file but you can easily change it to use the MobileNetV3 model in the code in case you want to give it a try.
