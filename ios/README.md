@@ -1,8 +1,9 @@
 # OCT-ai: An iOS app to classify retinal oct images on the fly
 
 ## Demo video
-![](ios/Video/iOS_OCT_ai_Demo.mp4)
-https://github.com/coyotegil/optical_coherence_tomography/ios/Video/iOS_OCT_ai_Demo.mp4
+
+https://user-images.githubusercontent.com/101695/159761080-6c7bde2b-15b9-4c94-b58f-c8e994a7e97e.mp4
+
 
 ## Overview
 
